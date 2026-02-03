@@ -9,7 +9,7 @@ Scripts to set up [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 
    ```powershell
    irm https://raw.githubusercontent.com/kitaekatt/claude-windows-setup/main/setup.ps1 | iex
    ```
-3. When prompted, press Enter to accept the default install directory (`%USERPROFILE%\claude-windows-setup`) or type a custom path.
+3. When prompted, press Enter to accept the default setup directory (`%USERPROFILE%\claude-windows-setup`) or type a custom path.
 
 This will download the project, then install Chocolatey (if needed), Node.js (if needed), Claude Code, and configure your Git identity (if not already set). No Git or GitHub account required.
 
@@ -17,7 +17,7 @@ Once complete, run `claude` to start Claude Code.
 
 ## Additional Scripts
 
-These scripts are available in the install directory after running the Quick Start above.
+These scripts are available in the setup directory after running the Quick Start above.
 
 ### bin\configure-git-windows.bat
 
