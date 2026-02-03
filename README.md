@@ -15,8 +15,8 @@ This will download the project, then install Chocolatey (if needed), Node.js (if
 
 Once complete, to start Claude Code:
 
-1. Open your project folder in File Explorer (e.g. `C:\dev\project-name\main`)
-2. Right-click the folder and select **Open in Terminal**
+1. Open your development folder in File Explorer (e.g. `C:\dev\p4`)
+2. Right-click your work folder (e.g. **main**) and select **Open in Terminal**
 3. Type `claude` and press Enter
 
 ## Additional Scripts

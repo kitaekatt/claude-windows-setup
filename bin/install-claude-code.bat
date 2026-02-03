@@ -144,9 +144,10 @@ echo ============================================
 echo   Setup complete!
 echo.
 echo   To start Claude Code:
-echo     1. Open your project folder in File Explorer
-echo        (e.g. C:\dev\project-name\main)
-echo     2. Right-click and select "Open in Terminal"
+echo     1. Open your development folder in File Explorer
+echo        (e.g. C:\dev\p4)
+echo     2. Right-click your work folder (e.g. "main")
+echo        and select "Open in Terminal"
 echo     3. Type: claude
 echo ============================================
 pause
