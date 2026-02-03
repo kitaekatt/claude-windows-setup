@@ -4,7 +4,7 @@ Scripts to set up [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 
 
 ## Quick Start
 
-1. Open **PowerShell as Administrator** (press Win+X, then select "Terminal (Admin)")
+1. Open **PowerShell as Administrator** (press Win+X, then select "Terminal (Admin)" or "Windows PowerShell (Admin)")
 2. Paste and run:
    ```powershell
    irm https://raw.githubusercontent.com/kitaekatt/claude-windows-setup/main/setup.ps1 | iex
