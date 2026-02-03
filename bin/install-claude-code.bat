@@ -79,6 +79,41 @@ echo [OK] Network connectivity confirmed
 echo.
 
 :: -----------------------------------------------------------
+:: Ensure %USERPROFILE%\.local\bin is on the user PATH
+:: (do this before installing Claude so the installer sees it)
+:: -----------------------------------------------------------
+set "CLAUDE_BIN=%USERPROFILE%\.local\bin"
+powershell -NoProfile -Command ^
+    "$bin = '%CLAUDE_BIN%'; $p = [Environment]::GetEnvironmentVariable('Path','User'); if (-not $p) { [Environment]::SetEnvironmentVariable('Path', $bin, 'User'); exit 1 } elseif ($p.Split(';') -notcontains $bin) { [Environment]::SetEnvironmentVariable('Path', \"$p;$bin\", 'User'); exit 1 } else { exit 0 }"
+if !errorlevel! neq 0 (
+    echo [OK] Added %CLAUDE_BIN% to user PATH
+) else (
+    echo [SKIP] %CLAUDE_BIN% already in user PATH
+)
+
+:: Verify the PATH was actually persisted
+powershell -NoProfile -Command ^
+    "$bin = '%CLAUDE_BIN%'; $p = [Environment]::GetEnvironmentVariable('Path','User'); if ($p.Split(';') -contains $bin) { exit 0 } else { exit 1 }"
+if !errorlevel! neq 0 (
+    echo [ERROR] Failed to add %CLAUDE_BIN% to user PATH.
+    echo.
+    echo This may be a permissions issue. Please add it manually:
+    echo   1. Open System Properties ^> Environment Variables
+    echo   2. Under "User variables", edit "Path"
+    echo   3. Add: %CLAUDE_BIN%
+    echo.
+    pause
+    exit /b 1
+)
+
+:: Ensure current session has it too
+echo !PATH! | findstr /I /C:"%CLAUDE_BIN%" >nul 2>&1
+if !errorlevel! neq 0 (
+    set "PATH=!PATH!;%CLAUDE_BIN%"
+)
+echo.
+
+:: -----------------------------------------------------------
 :: Step 1: Install Claude Code
 :: -----------------------------------------------------------
 if "!TEST_FAIL_CLAUDE!"=="1" (
@@ -120,26 +155,6 @@ if %errorlevel% neq 0 (
     echo [SKIP] Claude Code already installed
 )
 
-:: Ensure Claude is on the user PATH
-set "CLAUDE_BIN=%USERPROFILE%\.local\bin"
-if exist "!CLAUDE_BIN!\claude.exe" (
-    echo !PATH! | findstr /I /C:"!CLAUDE_BIN!" >nul 2>&1
-    if !errorlevel! neq 0 (
-        :: Read current user PATH from registry and append
-        for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v Path 2^>nul') do set "USER_PATH=%%B"
-        echo !USER_PATH! | findstr /I /C:"!CLAUDE_BIN!" >nul 2>&1
-        if !errorlevel! neq 0 (
-            if defined USER_PATH (
-                setx PATH "!USER_PATH!;!CLAUDE_BIN!"
-            ) else (
-                setx PATH "!CLAUDE_BIN!"
-            )
-        )
-        :: Also add to current session
-        set "PATH=!PATH!;!CLAUDE_BIN!"
-        echo [OK] Added Claude to PATH
-    )
-)
 echo.
 
 :: -----------------------------------------------------------
