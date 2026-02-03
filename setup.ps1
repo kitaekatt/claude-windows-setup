@@ -4,8 +4,8 @@
 $ErrorActionPreference = "Stop"
 
 # --- TEST FLAGS (set to $true to simulate failures) ---
-$TEST_FAIL_NETWORK = $true
-$TEST_FAIL_DOWNLOAD = $false
+$TEST_FAIL_NETWORK = $false
+$TEST_FAIL_DOWNLOAD = $true
 # --- END TEST FLAGS ---
 
 Write-Host ""
