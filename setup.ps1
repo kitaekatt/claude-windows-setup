@@ -38,13 +38,60 @@ if (-not (Test-Path $installDir)) {
     Write-Host "[OK] Directory already exists: $installDir" -ForegroundColor Green
 }
 
+# Check network connectivity
+Write-Host "Checking network connectivity..." -ForegroundColor Cyan
+try {
+    $null = Invoke-WebRequest -Uri "https://github.com" -UseBasicParsing -TimeoutSec 10
+    Write-Host "[OK] Network connectivity confirmed" -ForegroundColor Green
+} catch {
+    Write-Host "[ERROR] Cannot reach github.com." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Diagnostics:" -ForegroundColor Yellow
+    $adapter = Get-NetIPAddress -AddressFamily IPv4 -Type Unicast -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -ne '127.0.0.1' }
+    if (-not $adapter) {
+        Write-Host "  - No active network connection detected" -ForegroundColor Yellow
+    } else {
+        Write-Host "  - Network adapter connected (IP: $($adapter[0].IPAddress))" -ForegroundColor Yellow
+        try {
+            $null = Resolve-DnsName "github.com" -ErrorAction Stop
+            Write-Host "  - DNS resolution: OK" -ForegroundColor Yellow
+            Write-Host "  - HTTPS connection to github.com failed (may be blocked by firewall or proxy)" -ForegroundColor Yellow
+        } catch {
+            Write-Host "  - DNS resolution failed (cannot resolve github.com)" -ForegroundColor Yellow
+        }
+    }
+    Write-Host ""
+    Write-Host "Please check your internet connection and try again." -ForegroundColor Red
+    return
+}
+Write-Host ""
+
 # Download and extract repo ZIP
 $zipUrl = "https://github.com/kitaekatt/claude-windows-setup/archive/refs/heads/main.zip"
 $zipPath = Join-Path $env:TEMP "claude-windows-setup.zip"
 $extractPath = Join-Path $env:TEMP "claude-windows-setup-extract"
 
-Write-Host "Downloading repository..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+$maxRetries = 3
+$downloaded = $false
+for ($i = 1; $i -le $maxRetries; $i++) {
+    try {
+        Write-Host "Downloading repository (attempt $i of $maxRetries)..." -ForegroundColor Cyan
+        Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+        $downloaded = $true
+        break
+    } catch {
+        Write-Host "[WARN] Download failed: $_" -ForegroundColor Yellow
+        if ($i -lt $maxRetries) {
+            Write-Host "Retrying..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 5
+        }
+    }
+}
+if (-not $downloaded) {
+    Write-Host "[ERROR] Download failed after $maxRetries attempts." -ForegroundColor Red
+    Write-Host "Please check your internet connection and try again." -ForegroundColor Red
+    return
+}
 
 Write-Host "Extracting..." -ForegroundColor Cyan
 if (Test-Path $extractPath) {
