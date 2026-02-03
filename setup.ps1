@@ -3,6 +3,11 @@
 
 $ErrorActionPreference = "Stop"
 
+# --- TEST FLAGS (set to $true to simulate failures) ---
+$TEST_FAIL_NETWORK = $true
+$TEST_FAIL_DOWNLOAD = $false
+# --- END TEST FLAGS ---
+
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  Claude Code - Windows Setup" -ForegroundColor Cyan
@@ -41,6 +46,7 @@ if (-not (Test-Path $installDir)) {
 # Check network connectivity
 Write-Host "Checking network connectivity..." -ForegroundColor Cyan
 try {
+    if ($TEST_FAIL_NETWORK) { throw "Simulated network failure" }
     $null = Invoke-WebRequest -Uri "https://github.com" -UseBasicParsing -TimeoutSec 10
     Write-Host "[OK] Network connectivity confirmed" -ForegroundColor Green
 } catch {
@@ -76,6 +82,7 @@ $downloaded = $false
 for ($i = 1; $i -le $maxRetries; $i++) {
     try {
         Write-Host "Downloading repository (attempt $i of $maxRetries)..." -ForegroundColor Cyan
+        if ($TEST_FAIL_DOWNLOAD) { throw "Simulated download failure" }
         Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
         $downloaded = $true
         break

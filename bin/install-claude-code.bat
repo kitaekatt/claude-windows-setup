@@ -1,6 +1,14 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+:: --- TEST FLAGS (set to 1 to simulate failures) ---
+set "TEST_FAIL_NETWORK=0"
+set "TEST_FAIL_CHOCO=0"
+set "TEST_FAIL_NODEJS=0"
+set "TEST_FAIL_TERMINAL=0"
+set "TEST_FAIL_CLAUDE=0"
+:: --- END TEST FLAGS ---
+
 echo ============================================
 echo   Claude Code Installer for Windows
 echo ============================================
@@ -47,6 +55,15 @@ echo.
 :: Check 3: Network connectivity
 :: -----------------------------------------------------------
 echo Checking network connectivity...
+if "!TEST_FAIL_NETWORK!"=="1" (
+    echo [ERROR] Cannot reach the internet. ^(simulated^)
+    echo.
+    echo Once your connection is restored, re-run the installer from:
+    echo     %~dp0install-claude-code.bat
+    echo.
+    pause
+    exit /b 1
+)
 powershell -NoProfile -Command "try { $null = Invoke-WebRequest -Uri 'https://community.chocolatey.org' -UseBasicParsing -TimeoutSec 10; exit 0 } catch { Write-Host '[ERROR] Cannot reach the internet.' -ForegroundColor Red; Write-Host ''; Write-Host 'Diagnostics:' -ForegroundColor Yellow; $a = Get-NetIPAddress -AddressFamily IPv4 -Type Unicast -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -ne '127.0.0.1' }; if (-not $a) { Write-Host '  - No active network connection detected' -ForegroundColor Yellow } else { Write-Host \"  - Network adapter connected (IP: $($a[0].IPAddress))\" -ForegroundColor Yellow; try { $null = Resolve-DnsName 'community.chocolatey.org' -ErrorAction Stop; Write-Host '  - DNS resolution: OK' -ForegroundColor Yellow; Write-Host '  - HTTPS connection failed (may be blocked by firewall or proxy)' -ForegroundColor Yellow } catch { Write-Host '  - DNS resolution failed' -ForegroundColor Yellow } }; exit 1 }"
 if %errorlevel% neq 0 (
     echo.
@@ -64,6 +81,14 @@ echo.
 :: -----------------------------------------------------------
 where choco >nul 2>&1
 if %errorlevel% neq 0 (
+    if "!TEST_FAIL_CHOCO!"=="1" (
+        echo [FAIL] Chocolatey installation failed. ^(simulated^)
+        echo.
+        echo You can re-run this installer from:
+        echo     %~dp0install-claude-code.bat
+        pause
+        exit /b 1
+    )
     echo Installing Chocolatey...
     powershell -NoProfile -ExecutionPolicy Bypass -Command ^
         "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
@@ -88,6 +113,14 @@ echo.
 :: -----------------------------------------------------------
 where node >nul 2>&1
 if %errorlevel% neq 0 (
+    if "!TEST_FAIL_NODEJS!"=="1" (
+        echo [FAIL] Node.js installation failed after 3 attempts. ^(simulated^)
+        echo.
+        echo You can re-run this installer from:
+        echo     %~dp0install-claude-code.bat
+        pause
+        exit /b 1
+    )
     call :choco_install_retry nodejs
     call refreshenv
     where node >nul 2>&1
@@ -110,6 +143,10 @@ echo.
 :: -----------------------------------------------------------
 where wt >nul 2>&1
 if %errorlevel% neq 0 (
+    if "!TEST_FAIL_TERMINAL!"=="1" (
+        echo [WARN] Windows Terminal installation failed. You can still use PowerShell directly. ^(simulated^)
+        goto :skip_terminal
+    )
     call :choco_install_retry microsoft-windows-terminal
     call refreshenv
     where wt >nul 2>&1
@@ -121,11 +158,20 @@ if %errorlevel% neq 0 (
 ) else (
     echo [SKIP] Windows Terminal already installed
 )
+:skip_terminal
 echo.
 
 :: -----------------------------------------------------------
 :: Step 4: Install Claude Code
 :: -----------------------------------------------------------
+if "!TEST_FAIL_CLAUDE!"=="1" (
+    echo [FAIL] Claude Code installation failed after 3 attempts. ^(simulated^)
+    echo.
+    echo You can re-run this installer from:
+    echo     %~dp0install-claude-code.bat
+    pause
+    exit /b 1
+)
 set "NPM_RESULT=1"
 for /L %%i in (1,1,3) do (
     if !NPM_RESULT! neq 0 (
