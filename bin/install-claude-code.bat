@@ -71,13 +71,14 @@ where node >nul 2>&1
 if %errorlevel% neq 0 (
     echo Installing Node.js...
     choco install nodejs -y
+    call refreshenv
+    where node >nul 2>&1
     if %errorlevel% neq 0 (
         echo [FAIL] Node.js installation failed.
         pause
         exit /b 1
     )
     echo [OK] Node.js installed
-    call refreshenv
 ) else (
     echo [SKIP] Node.js already installed
 )
