@@ -186,7 +186,7 @@ git config --global user.name >nul 2>&1
 if %errorlevel% neq 0 (
     echo Git user name is not configured.
     set "GIT_NAME="
-    set /p GIT_NAME="Enter your name for Git commits (or press Enter to skip): "
+    set /p GIT_NAME="Enter your name for Git commits (or Enter to skip - you can set this later): "
     if defined GIT_NAME (
         git config --global user.name "!GIT_NAME!"
         echo [OK] Git user.name set
@@ -201,7 +201,7 @@ git config --global user.email >nul 2>&1
 if %errorlevel% neq 0 (
     echo Git email is not configured.
     set "GIT_EMAIL="
-    set /p GIT_EMAIL="Enter your email for Git commits (or press Enter to skip): "
+    set /p GIT_EMAIL="Enter your email for Git commits (or Enter to skip - you can set this later): "
     if defined GIT_EMAIL (
         git config --global user.email "!GIT_EMAIL!"
         echo [OK] Git user.email set

@@ -24,16 +24,10 @@ if (-not $isAdmin) {
     return
 }
 
-# Prompt for setup directory
-$defaultDir = Join-Path $HOME "claude-windows-setup"
+# Set install directory
+$installDir = Join-Path $HOME "claude-windows-setup"
 Write-Host "Setup directory: " -NoNewline
-Write-Host $defaultDir -ForegroundColor Yellow
-$inputDir = Read-Host "Press Enter to accept, or type a new path"
-if ([string]::IsNullOrWhiteSpace($inputDir)) {
-    $installDir = $defaultDir
-} else {
-    $installDir = $inputDir
-}
+Write-Host $installDir -ForegroundColor Yellow
 
 # Create directory
 if (-not (Test-Path $installDir)) {
