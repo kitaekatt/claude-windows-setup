@@ -45,11 +45,19 @@ if (-not (Test-Path $installDir)) {
 
 # Check network connectivity
 Write-Host "Checking network connectivity..." -ForegroundColor Cyan
-try {
-    if ($TEST_FAIL_NETWORK) { throw "Simulated network failure" }
-    $null = Invoke-WebRequest -Uri "https://github.com" -UseBasicParsing -TimeoutSec 10
+$networkOk = $true
+if ($TEST_FAIL_NETWORK) {
+    $networkOk = $false
+} else {
+    try {
+        $null = Invoke-WebRequest -Uri "https://github.com" -UseBasicParsing -TimeoutSec 10
+    } catch {
+        $networkOk = $false
+    }
+}
+if ($networkOk) {
     Write-Host "[OK] Network connectivity confirmed" -ForegroundColor Green
-} catch {
+} else {
     Write-Host "[ERROR] Cannot reach github.com." -ForegroundColor Red
     Write-Host ""
     Write-Host "Diagnostics:" -ForegroundColor Yellow
@@ -82,7 +90,7 @@ $downloaded = $false
 for ($i = 1; $i -le $maxRetries; $i++) {
     try {
         Write-Host "Downloading repository (attempt $i of $maxRetries)..." -ForegroundColor Cyan
-        if ($TEST_FAIL_DOWNLOAD) { throw "Simulated download failure" }
+        if ($TEST_FAIL_DOWNLOAD) { $downloaded = $false; break }
         Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
         $downloaded = $true
         break
