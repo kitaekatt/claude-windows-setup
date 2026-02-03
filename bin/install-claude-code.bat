@@ -85,7 +85,26 @@ if %errorlevel% neq 0 (
 echo.
 
 :: -----------------------------------------------------------
-:: Step 3: Install Claude Code
+:: Step 3: Install Windows Terminal (if not present)
+:: -----------------------------------------------------------
+where wt >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Installing Windows Terminal...
+    choco install microsoft-windows-terminal -y
+    call refreshenv
+    where wt >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [WARN] Windows Terminal installation failed. You can still use PowerShell directly.
+    ) else (
+        echo [OK] Windows Terminal installed
+    )
+) else (
+    echo [SKIP] Windows Terminal already installed
+)
+echo.
+
+:: -----------------------------------------------------------
+:: Step 4: Install Claude Code
 :: -----------------------------------------------------------
 echo Installing Claude Code...
 call npm install -g @anthropic-ai/claude-code
@@ -98,7 +117,7 @@ echo [OK] Claude Code installed
 echo.
 
 :: -----------------------------------------------------------
-:: Step 4: Configure Git identity (if not already set)
+:: Step 5: Configure Git identity (if not already set)
 :: -----------------------------------------------------------
 git config --global user.name >nul 2>&1
 if %errorlevel% neq 0 (
@@ -124,6 +143,10 @@ echo.
 echo ============================================
 echo   Setup complete!
 echo.
-echo   Run "claude" to start Claude Code.
+echo   To start Claude Code:
+echo     1. Open your project folder in File Explorer
+echo        (e.g. C:\dev\project-name\main)
+echo     2. Right-click and select "Open in Terminal"
+echo     3. Type: claude
 echo ============================================
 pause
