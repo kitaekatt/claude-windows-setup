@@ -20,7 +20,7 @@ if (-not $isAdmin) {
 }
 
 # Prompt for install directory
-$defaultDir = Join-Path $HOME "Dev\claude-windows-setup"
+$defaultDir = Join-Path $HOME "claude-windows-setup"
 Write-Host "Install directory: " -NoNewline
 Write-Host $defaultDir -ForegroundColor Yellow
 $inputDir = Read-Host "Press Enter to accept, or type a new path"
