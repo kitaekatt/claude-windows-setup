@@ -119,6 +119,27 @@ if %errorlevel% neq 0 (
 ) else (
     echo [SKIP] Claude Code already installed
 )
+
+:: Ensure Claude is on the user PATH
+set "CLAUDE_BIN=%USERPROFILE%\.local\bin"
+if exist "!CLAUDE_BIN!\claude.exe" (
+    echo !PATH! | findstr /I /C:"!CLAUDE_BIN!" >nul 2>&1
+    if !errorlevel! neq 0 (
+        :: Read current user PATH from registry and append
+        for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v Path 2^>nul') do set "USER_PATH=%%B"
+        echo !USER_PATH! | findstr /I /C:"!CLAUDE_BIN!" >nul 2>&1
+        if !errorlevel! neq 0 (
+            if defined USER_PATH (
+                setx PATH "!USER_PATH!;!CLAUDE_BIN!"
+            ) else (
+                setx PATH "!CLAUDE_BIN!"
+            )
+        )
+        :: Also add to current session
+        set "PATH=!PATH!;!CLAUDE_BIN!"
+        echo [OK] Added Claude to PATH
+    )
+)
 echo.
 
 :: -----------------------------------------------------------
