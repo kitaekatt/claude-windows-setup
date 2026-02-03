@@ -130,21 +130,33 @@ if "!TEST_FAIL_CHOCO!"=="1" (
     if defined OPT_FAILURES (set "OPT_FAILURES=!OPT_FAILURES!, Chocolatey") else (set "OPT_FAILURES=Chocolatey")
     goto :skip_choco
 )
+set "CHOCO_FOUND=0"
 where choco >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Installing Chocolatey...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-        "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
-    if %errorlevel% neq 0 (
-        echo [WARN] Unable to download Chocolatey from https://community.chocolatey.org
-        if defined OPT_FAILURES (set "OPT_FAILURES=!OPT_FAILURES!, Chocolatey") else (set "OPT_FAILURES=Chocolatey")
-        goto :skip_choco
-    )
-    echo [OK] Chocolatey installed
-    call refreshenv
+if %errorlevel% equ 0 (
+    set "CHOCO_FOUND=1"
 ) else (
-    echo [SKIP] Chocolatey already installed
+    :: Check registry for ChocolateyInstall (always up-to-date, covers custom paths)
+    for /f "tokens=2*" %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v ChocolateyInstall 2^>nul') do set "ChocolateyInstall=%%B"
+    if exist "!ChocolateyInstall!\choco.exe" (
+        set "CHOCO_FOUND=1"
+    ) else if exist "C:\ProgramData\chocolatey\choco.exe" (
+        set "CHOCO_FOUND=1"
+    )
 )
+if "!CHOCO_FOUND!"=="1" (
+    echo [SKIP] Chocolatey already installed
+    goto :skip_choco
+)
+echo Installing Chocolatey...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+if %errorlevel% neq 0 (
+    echo [WARN] Unable to download Chocolatey from https://community.chocolatey.org
+    if defined OPT_FAILURES (set "OPT_FAILURES=!OPT_FAILURES!, Chocolatey") else (set "OPT_FAILURES=Chocolatey")
+    goto :skip_choco
+)
+echo [OK] Chocolatey installed
+call refreshenv
 :skip_choco
 echo.
 
