@@ -10,6 +10,6 @@ Scripts detect when they are run from the wrong environment (e.g., double-clicke
 
 ## Project Structure
 
-- `bin/install-claude-code.bat` — Main installer. Installs Chocolatey, Node.js, Claude Code, and configures Git identity.
+- `bin/install-claude-code.bat` — Main installer. Installs Chocolatey, Windows Terminal, Claude Code, and configures Git identity.
 - `bin/configure-git-windows.bat` — Configures Git for cross-platform compatibility.
 - `bin/install-gh.bat` — Installs the GitHub CLI.

@@ -75,7 +75,7 @@ if ($networkOk) {
         }
     }
     Write-Host ""
-    Write-Host "Please check your internet connection and try again." -ForegroundColor Red
+    Write-Host "Please try again later." -ForegroundColor Red
     return
 }
 Write-Host ""
@@ -104,7 +104,7 @@ for ($i = 1; $i -le $maxRetries; $i++) {
 }
 if (-not $downloaded) {
     Write-Host "[ERROR] Download failed after $maxRetries attempts." -ForegroundColor Red
-    Write-Host "Please check your internet connection and try again." -ForegroundColor Red
+    Write-Host "Please try again later." -ForegroundColor Red
     return
 }
 

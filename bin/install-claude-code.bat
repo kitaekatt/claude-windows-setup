@@ -3,11 +3,13 @@ setlocal EnableDelayedExpansion
 
 :: --- TEST FLAGS (set to 1 to simulate failures) ---
 set "TEST_FAIL_NETWORK=0"
-set "TEST_FAIL_CHOCO=0"
-set "TEST_FAIL_NODEJS=0"
-set "TEST_FAIL_TERMINAL=0"
 set "TEST_FAIL_CLAUDE=0"
+set "TEST_FAIL_CHOCO=0"
+set "TEST_FAIL_TERMINAL=0"
 :: --- END TEST FLAGS ---
+
+:: Track optional install failures
+set "OPT_FAILURES="
 
 echo ============================================
 echo   Claude Code Installer for Windows
@@ -56,18 +58,18 @@ echo.
 :: -----------------------------------------------------------
 echo Checking network connectivity...
 if "!TEST_FAIL_NETWORK!"=="1" (
-    echo [ERROR] Cannot reach the internet. ^(simulated^)
+    echo [ERROR] Cannot reach the internet.
     echo.
-    echo Once your connection is restored, re-run the installer from:
+    echo Please try again later by re-running the installer from:
     echo     %~dp0install-claude-code.bat
     echo.
     pause
     exit /b 1
 )
-powershell -NoProfile -Command "try { $null = Invoke-WebRequest -Uri 'https://community.chocolatey.org' -UseBasicParsing -TimeoutSec 10; exit 0 } catch { Write-Host '[ERROR] Cannot reach the internet.' -ForegroundColor Red; Write-Host ''; Write-Host 'Diagnostics:' -ForegroundColor Yellow; $a = Get-NetIPAddress -AddressFamily IPv4 -Type Unicast -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -ne '127.0.0.1' }; if (-not $a) { Write-Host '  - No active network connection detected' -ForegroundColor Yellow } else { Write-Host \"  - Network adapter connected (IP: $($a[0].IPAddress))\" -ForegroundColor Yellow; try { $null = Resolve-DnsName 'community.chocolatey.org' -ErrorAction Stop; Write-Host '  - DNS resolution: OK' -ForegroundColor Yellow; Write-Host '  - HTTPS connection failed (may be blocked by firewall or proxy)' -ForegroundColor Yellow } catch { Write-Host '  - DNS resolution failed' -ForegroundColor Yellow } }; exit 1 }"
+powershell -NoProfile -Command "try { $null = Invoke-WebRequest -Uri 'https://github.com' -UseBasicParsing -TimeoutSec 10; exit 0 } catch { Write-Host '[ERROR] Cannot reach the internet.' -ForegroundColor Red; Write-Host ''; Write-Host 'Diagnostics:' -ForegroundColor Yellow; $a = Get-NetIPAddress -AddressFamily IPv4 -Type Unicast -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -ne '127.0.0.1' }; if (-not $a) { Write-Host '  - No active network connection detected' -ForegroundColor Yellow } else { Write-Host \"  - Network adapter connected (IP: $($a[0].IPAddress))\" -ForegroundColor Yellow; try { $null = Resolve-DnsName 'claude.ai' -ErrorAction Stop; Write-Host '  - DNS resolution: OK' -ForegroundColor Yellow; Write-Host '  - HTTPS connection failed (may be blocked by firewall or proxy)' -ForegroundColor Yellow } catch { Write-Host '  - DNS resolution failed' -ForegroundColor Yellow } }; exit 1 }"
 if %errorlevel% neq 0 (
     echo.
-    echo Once your connection is restored, re-run the installer from:
+    echo Please try again later by re-running the installer from:
     echo     %~dp0install-claude-code.bat
     echo.
     pause
@@ -77,81 +79,97 @@ echo [OK] Network connectivity confirmed
 echo.
 
 :: -----------------------------------------------------------
-:: Step 1: Install Chocolatey (if not present)
+:: Step 1: Install Claude Code
 :: -----------------------------------------------------------
-where choco >nul 2>&1
+if "!TEST_FAIL_CLAUDE!"=="1" (
+    echo [FAIL] Unable to download Claude Code from https://claude.ai
+    echo.
+    echo Please try again later by re-running the installer from:
+    echo     %~dp0install-claude-code.bat
+    pause
+    exit /b 1
+)
+where claude >nul 2>&1
 if %errorlevel% neq 0 (
-    if "!TEST_FAIL_CHOCO!"=="1" (
-        echo [FAIL] Chocolatey installation failed. ^(simulated^)
+    echo Installing Claude Code...
+    set "CLAUDE_RESULT=1"
+    for /L %%i in (1,1,3) do (
+        if !CLAUDE_RESULT! neq 0 (
+            if %%i gtr 1 echo Retrying ^(attempt %%i of 3^)...
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://claude.ai/install.ps1 | iex"
+            if !errorlevel! equ 0 (
+                set "CLAUDE_RESULT=0"
+            ) else (
+                if %%i lss 3 (
+                    echo [WARN] Attempt %%i failed. Retrying in 5 seconds...
+                    timeout /t 5 /nobreak >nul
+                )
+            )
+        )
+    )
+    if !CLAUDE_RESULT! neq 0 (
+        echo [FAIL] Unable to download Claude Code from https://claude.ai
         echo.
-        echo You can re-run this installer from:
+        echo Please try again later by re-running the installer from:
         echo     %~dp0install-claude-code.bat
         pause
         exit /b 1
     )
+    echo [OK] Claude Code installed
+) else (
+    echo [SKIP] Claude Code already installed
+)
+echo.
+
+:: -----------------------------------------------------------
+:: Step 2: Install Chocolatey (optional, needed for
+::         Windows Terminal)
+:: -----------------------------------------------------------
+if "!TEST_FAIL_CHOCO!"=="1" (
+    echo [WARN] Unable to download Chocolatey from https://community.chocolatey.org
+    if defined OPT_FAILURES (set "OPT_FAILURES=!OPT_FAILURES!, Chocolatey") else (set "OPT_FAILURES=Chocolatey")
+    goto :skip_choco
+)
+where choco >nul 2>&1
+if %errorlevel% neq 0 (
     echo Installing Chocolatey...
     powershell -NoProfile -ExecutionPolicy Bypass -Command ^
         "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
     if %errorlevel% neq 0 (
-        echo [FAIL] Chocolatey installation failed.
-        echo.
-        echo You can re-run this installer from:
-        echo     %~dp0install-claude-code.bat
-        pause
-        exit /b 1
+        echo [WARN] Unable to download Chocolatey from https://community.chocolatey.org
+        if defined OPT_FAILURES (set "OPT_FAILURES=!OPT_FAILURES!, Chocolatey") else (set "OPT_FAILURES=Chocolatey")
+        goto :skip_choco
     )
     echo [OK] Chocolatey installed
-    :: Refresh PATH so choco is available in this session
     call refreshenv
 ) else (
     echo [SKIP] Chocolatey already installed
 )
+:skip_choco
 echo.
 
 :: -----------------------------------------------------------
-:: Step 2: Install Node.js (if not present)
+:: Step 3: Install Windows Terminal (optional)
 :: -----------------------------------------------------------
-where node >nul 2>&1
-if %errorlevel% neq 0 (
-    if "!TEST_FAIL_NODEJS!"=="1" (
-        echo [FAIL] Node.js installation failed after 3 attempts. ^(simulated^)
-        echo.
-        echo You can re-run this installer from:
-        echo     %~dp0install-claude-code.bat
-        pause
-        exit /b 1
-    )
-    call :choco_install_retry nodejs
-    call refreshenv
-    where node >nul 2>&1
-    if %errorlevel% neq 0 (
-        echo [FAIL] Node.js installation failed after 3 attempts.
-        echo.
-        echo You can re-run this installer from:
-        echo     %~dp0install-claude-code.bat
-        pause
-        exit /b 1
-    )
-    echo [OK] Node.js installed
-) else (
-    echo [SKIP] Node.js already installed
+if "!TEST_FAIL_TERMINAL!"=="1" (
+    echo [WARN] Unable to install Windows Terminal.
+    if defined OPT_FAILURES (set "OPT_FAILURES=!OPT_FAILURES!, Windows Terminal") else (set "OPT_FAILURES=Windows Terminal")
+    goto :skip_terminal
 )
-echo.
-
-:: -----------------------------------------------------------
-:: Step 3: Install Windows Terminal (if not present)
-:: -----------------------------------------------------------
 where wt >nul 2>&1
 if %errorlevel% neq 0 (
-    if "!TEST_FAIL_TERMINAL!"=="1" (
-        echo [WARN] Windows Terminal installation failed. You can still use PowerShell directly. ^(simulated^)
+    where choco >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [SKIP] Windows Terminal requires Chocolatey, which is not available.
+        if defined OPT_FAILURES (set "OPT_FAILURES=!OPT_FAILURES!, Windows Terminal") else (set "OPT_FAILURES=Windows Terminal")
         goto :skip_terminal
     )
     call :choco_install_retry microsoft-windows-terminal
     call refreshenv
     where wt >nul 2>&1
     if %errorlevel% neq 0 (
-        echo [WARN] Windows Terminal installation failed. You can still use PowerShell directly.
+        echo [WARN] Unable to install Windows Terminal.
+        if defined OPT_FAILURES (set "OPT_FAILURES=!OPT_FAILURES!, Windows Terminal") else (set "OPT_FAILURES=Windows Terminal")
     ) else (
         echo [OK] Windows Terminal installed
     )
@@ -162,51 +180,19 @@ if %errorlevel% neq 0 (
 echo.
 
 :: -----------------------------------------------------------
-:: Step 4: Install Claude Code
-:: -----------------------------------------------------------
-if "!TEST_FAIL_CLAUDE!"=="1" (
-    echo [FAIL] Claude Code installation failed after 3 attempts. ^(simulated^)
-    echo.
-    echo You can re-run this installer from:
-    echo     %~dp0install-claude-code.bat
-    pause
-    exit /b 1
-)
-set "NPM_RESULT=1"
-for /L %%i in (1,1,3) do (
-    if !NPM_RESULT! neq 0 (
-        echo Installing Claude Code ^(attempt %%i of 3^)...
-        call npm install -g @anthropic-ai/claude-code
-        if !errorlevel! equ 0 (
-            set "NPM_RESULT=0"
-        ) else (
-            if %%i lss 3 (
-                echo [WARN] Attempt %%i failed. Retrying in 5 seconds...
-                timeout /t 5 /nobreak >nul
-            )
-        )
-    )
-)
-if !NPM_RESULT! neq 0 (
-    echo [FAIL] Claude Code installation failed after 3 attempts.
-    echo.
-    echo You can re-run this installer from:
-    echo     %~dp0install-claude-code.bat
-    pause
-    exit /b 1
-)
-echo [OK] Claude Code installed
-echo.
-
-:: -----------------------------------------------------------
-:: Step 5: Configure Git identity (if not already set)
+:: Step 4: Configure Git identity (if not already set)
 :: -----------------------------------------------------------
 git config --global user.name >nul 2>&1
 if %errorlevel% neq 0 (
     echo Git user name is not configured.
-    set /p GIT_NAME="Enter your name for Git commits: "
-    git config --global user.name "%GIT_NAME%"
-    echo [OK] Git user.name set
+    set "GIT_NAME="
+    set /p GIT_NAME="Enter your name for Git commits (or press Enter to skip): "
+    if defined GIT_NAME (
+        git config --global user.name "!GIT_NAME!"
+        echo [OK] Git user.name set
+    ) else (
+        echo [SKIP] Git user.name skipped
+    )
 ) else (
     echo [SKIP] Git user.name already configured
 )
@@ -214,20 +200,35 @@ if %errorlevel% neq 0 (
 git config --global user.email >nul 2>&1
 if %errorlevel% neq 0 (
     echo Git email is not configured.
-    set /p GIT_EMAIL="Enter your email for Git commits: "
-    git config --global user.email "%GIT_EMAIL%"
-    echo [OK] Git user.email set
+    set "GIT_EMAIL="
+    set /p GIT_EMAIL="Enter your email for Git commits (or press Enter to skip): "
+    if defined GIT_EMAIL (
+        git config --global user.email "!GIT_EMAIL!"
+        echo [OK] Git user.email set
+    ) else (
+        echo [SKIP] Git user.email skipped
+    )
 ) else (
     echo [SKIP] Git user.email already configured
 )
 echo.
 
+:: -----------------------------------------------------------
+:: Summary
+:: -----------------------------------------------------------
 echo ============================================
 echo   Setup complete!
 echo.
+if defined OPT_FAILURES (
+    echo   NOTE: The following optional installs failed:
+    echo    !OPT_FAILURES!
+    echo   You can re-run this installer later to retry:
+    echo     %~dp0install-claude-code.bat
+    echo.
+)
 echo   To start Claude Code:
 echo     1. Open your development folder in File Explorer
-echo        (e.g. C:\dev\p4)
+echo        (e.g. C:\dev\p4\project-name)
 echo     2. Right-click your work folder (e.g. "main")
 echo        and select "Open in Terminal"
 echo     3. Type: claude

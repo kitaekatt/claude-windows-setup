@@ -11,11 +11,11 @@ Scripts to set up [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 
    ```
 3. When prompted, press Enter to accept the default setup directory (`%USERPROFILE%\claude-windows-setup`) or type a custom path.
 
-This will download the project, then install Chocolatey (if needed), Node.js (if needed), Windows Terminal (if needed), Claude Code, and configure your Git identity (if not already set). No Git or GitHub account required.
+This will download the project, then install Chocolatey (if needed), Windows Terminal (if needed), Claude Code, and configure your Git identity (if not already set). No Git or GitHub account required.
 
 Once complete, to start Claude Code:
 
-1. Open your development folder in File Explorer (e.g. `C:\dev\p4`)
+1. Open your development folder in File Explorer (e.g. `C:\dev\p4\project-name`)
 2. Right-click your work folder (e.g. **main**) and select **Open in Terminal**
 3. Type `claude` and press Enter
 
